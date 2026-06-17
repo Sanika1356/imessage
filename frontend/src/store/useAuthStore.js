@@ -41,6 +41,11 @@ export const useAuthStore = create((set, get) => ({
     socket.on("getOnlineUsers", (userIds) => {
       set({ onlineUsers: userIds });
     });
+
+    // Subscribes to global chat and email events dynamically to avoid circular imports
+    import("./useChatStore").then(({ useChatStore }) => {
+      useChatStore.getState().subscribeToGlobalEvents(socket);
+    });
   },
 
   disconnectSocket: () => {

@@ -7,7 +7,10 @@ export async function getUsersForSidebar(req, res) {
   try {
     const loggedInUserId = req.user._id;
 
-    const filteredUsers = await User.find({ _id: { $ne: loggedInUserId } }).select("-clerkId");
+    const filteredUsers = await User.find({
+      _id: { $ne: loggedInUserId },
+      clerkId: { $not: /^seed_/ }
+    }).select("-clerkId");
 
     res.status(200).json(filteredUsers);
   }
@@ -36,9 +39,11 @@ export async function getConversationsForSidebar(req, res) {
       { $sort: { lastMessageAt: -1 } },
       // 4. Look up each partner's user profile (comes back as an array).
       { $lookup: { from: "users", localField: "_id", foreignField: "_id", as: "user" } },
-      // 5. Pull that profile out of the array and make it the document.
+      // 5. Exclude conversations with users that no longer exist (e.g. seeded users)
+      { $match: { user: { $ne: [] } } },
+      // 6. Pull that profile out of the array and make it the document.
       { $replaceRoot: { newRoot: { $first: "$user" } } },
-      // 6. Hide the private clerkId field from the result.
+      // 7. Hide the private clerkId field from the result.
       { $project: { clerkId: 0 } },
     ]);
 
@@ -106,6 +111,35 @@ export async function sendMessage(req, res) {
     res.status(201).json(newMessage);
   } catch (error) {
     console.error("Error in sendMessage:", error.message);
+    res.status(500).json({ message: "Internal server error" });
+  }
+}
+
+export async function searchUsers(req, res) {
+  try {
+    const loggedInUserId = req.user._id;
+    const { query } = req.query;
+
+    if (!query) {
+      return res.status(400).json({ message: "Search query is required" });
+    }
+
+    const searchQuery = query.trim();
+
+    // Find users excluding the logged-in user that match email, phone, or fullName
+    const users = await User.find({
+      _id: { $ne: loggedInUserId },
+      clerkId: { $not: /^seed_/ },
+      $or: [
+        { email: searchQuery },
+        { phoneNumber: searchQuery },
+        { fullName: { $regex: searchQuery, $options: "i" } }
+      ]
+    }).select("-clerkId");
+
+    res.status(200).json(users);
+  } catch (error) {
+    console.error("Error in searchUsers:", error.message);
     res.status(500).json({ message: "Internal server error" });
   }
 }

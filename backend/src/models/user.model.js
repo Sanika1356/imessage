@@ -18,6 +18,24 @@ const userSchema = new mongoose.Schema({
     profilePic: {
         type: String,
         default: "",
+    },
+    phoneNumber: {
+        type: String,
+        unique: true,
+        sparse: true,
+    },
+    bio: {
+        type: String,
+        default: "",
+    },
+    status: {
+        type: String,
+        enum: ["online", "offline"],
+        default: "offline",
+    },
+    lastSeen: {
+        type: Date,
+        default: Date.now,
     }
 },
     {

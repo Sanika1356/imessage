@@ -2,15 +2,17 @@ import useScrollToBottom from "../../hooks/useScrollToBottom";
 import { MessageBubble } from "./MessageBubble";
 import { NoConversationPlaceholder } from "./NoConversationPlaceholder";
 import { useSelectedConversation } from "../../hooks/useSelectedConversation";
+import { useWallpaper } from "../../context/wallpaper";
 
 export function MessageList() {
   const { activeConversation, activeConversationId } = useSelectedConversation();
+  const { frameStyle } = useWallpaper();
 
   const lastMessageId = activeConversation?.messages.at(-1)?.id;
   const messagesScrollRef = useScrollToBottom(activeConversationId, lastMessageId);
 
   return (
-    <div className="relative flex flex-1 flex-col overflow-hidden">
+    <div className="relative flex flex-1 flex-col overflow-hidden" style={activeConversation ? frameStyle : undefined}>
       {activeConversation ? (
         <div
           ref={messagesScrollRef}

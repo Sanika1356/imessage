@@ -15,6 +15,13 @@ export async function connectDB() {
 
         console.log("MongoDB Connected", conn.connection.host);
 
+        try {
+            await mongoose.model("User").deleteMany({ clerkId: /^seed_/ });
+            console.log("Cleaned up seeded/artificial users from database.");
+        } catch (err) {
+            console.error("Failed to delete seeded users:", err.message);
+        }
+
     }
     catch (error) {
         console.error("MongoDB connection error:", error.message);

@@ -9,20 +9,36 @@ const messageSchema = new mongoose.Schema({
     receiverId: {
         type: mongoose.Schema.Types.ObjectId,
         ref: "User",
-        required : true,
     },
-    texts: {
-        type:String,
+    groupId: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "Group",
+    },
+    channelId: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "Channel",
+    },
+    text: {
+        type: String,
     },
     image: {
-        type:String,
+        type: String,
     },
     video: {
-        type:String,
+        type: String,
     },
     pdf: {
-        type:String,
-    }
+        type: String,
+    },
+    status: {
+        type: String,
+        enum: ["sent", "delivered", "read"],
+        default: "sent",
+    },
+    readBy: [{
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "User",
+    }]
 
 },
     {

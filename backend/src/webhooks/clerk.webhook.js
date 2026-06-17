@@ -33,9 +33,20 @@ router.post("/", async (req, res) => {
         const fullName =
             [u.first_name, u.last_name].filter(Boolean).join(" ") || u.username || email?.split("@")[0];
 
+        const phoneNumber =
+            u.phone_numbers?.find((p) => p.id === u.primary_phone_number_id)?.phone_number ??
+            u.phone_numbers?.[0]?.phone_number;
+
+        const updateData = { clerkId: u.id, email, fullName, profilePic: u.image_url };
+        if (phoneNumber) {
+            updateData.phoneNumber = phoneNumber;
+        } else {
+            updateData.phoneNumber = undefined;
+        }
+
         await User.findOneAndUpdate(
             { clerkId: u.id },
-            { clerkId: u.id, email, fullName, profilePic: u.image_url },
+            updateData,
             { new: true, upsert: true, setDefaultsOnInsert: true },
         );
     }

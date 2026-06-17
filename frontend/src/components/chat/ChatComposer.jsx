@@ -12,7 +12,7 @@ export function ChatComposer() {
   const isSendingMedia = useChatStore((state) => state.isSendingMedia);
   const sendTextMessage = useChatStore((state) => state.sendTextMessage);
   const setComposerText = useChatStore((state) => state.setComposerText);
-  const { activeConversationId } = useSelectedConversation();
+  const { activeConversationId, activeConversation } = useSelectedConversation();
   const { playRandomKeyStrokeSound } = useKeyboardSound();
   const mediaInputRef = useRef(null);
 
@@ -42,6 +42,18 @@ export function ChatComposer() {
 
     if (didSendMessage) playSoundIfEnabled();
   };
+
+  const isReadOnly = activeConversation?.telegramUsername;
+
+  if (isReadOnly) {
+    return (
+      <footer className="shrink-0 border-t border-border px-4 py-3 bg-[#202022]/80 text-center backdrop-blur-md">
+        <p className="text-xs text-zinc-400">
+          This is a read-only preview feed for Telegram <span className="text-accent font-semibold">@{activeConversation.telegramUsername}</span>.
+        </p>
+      </footer>
+    );
+  }
 
   return (
     <footer className="shrink-0 border-t border-border px-1.5 pb-2 pt-2 sm:px-2">
