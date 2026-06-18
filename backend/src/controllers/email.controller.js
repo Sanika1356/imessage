@@ -89,9 +89,18 @@ export async function sendEmail(req, res) {
         const socketId = getReceiverSocketId(recipientUser._id);
         if (socketId) {
           io.to(socketId).emit("newEmail", inboxEmail);
+          console.log(`[EMAIL-DELIVERY-REALTIME] Email notification sent to recipient ${recipientUser._id} via socket`);
+        } else {
+          console.log(`[EMAIL-DELIVERY-OFFLINE] Recipient ${recipientUser._id} is offline - email saved to inbox`);
         }
+        
+        console.log(`[EMAIL-CREATED] Email from ${senderEmail} to ${emailAddr} saved to inbox`);
+      } else {
+        console.log(`[EMAIL-NOT-INTERNAL] Recipient ${emailAddr} not found in app - external email only`);
       }
     }
+    
+    console.log(`[EMAIL-SENT] Email sent from ${senderEmail} to ${recipient}. Internal recipients: ${uniqueRecipients.length}`);
 
     res.status(201).json(sentEmail);
   } catch (error) {

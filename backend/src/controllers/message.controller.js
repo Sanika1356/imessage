@@ -110,13 +110,28 @@ export async function sendMessage(req, res) {
       await newMessage.populate('replyTo', 'text senderId');
     }
 
+    // Populate sender info for real-time display
+    const populatedMessage = await Message.findById(newMessage._id)
+      .populate('senderId', 'fullName profilePic email phoneNumber')
+      .populate('receiverId', 'fullName profilePic email phoneNumber');
+
     const receiverSocketId = getReceiverSocketId(receiverId);
-    // only send the message in realtime if user is online
+    // Send message to receiver if online
     if (receiverSocketId) {
-      io.to(receiverSocketId).emit("newMessage", newMessage);
+      io.to(receiverSocketId).emit("newMessage", populatedMessage);
+      console.log(`[MESSAGE-DELIVERY] Message sent to receiver ${receiverId} via socket`);
+    } else {
+      console.log(`[MESSAGE-DELIVERY] Receiver ${receiverId} is offline - message saved to DB`);
+    }
+    
+    // Also send to sender for immediate UI update
+    const senderSocketId = getReceiverSocketId(senderId);
+    if (senderSocketId) {
+      io.to(senderSocketId).emit("messageSent", populatedMessage);
     }
 
-    res.status(201).json(newMessage);
+    console.log(`[MESSAGE-CREATED] Message ${newMessage._id} created from ${senderId} to ${receiverId}`);
+    res.status(201).json(populatedMessage);
   } catch (error) {
     console.error("Error in sendMessage:", error.message);
     res.status(500).json({ message: "Internal server error" });

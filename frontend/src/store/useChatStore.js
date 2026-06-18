@@ -284,13 +284,17 @@ export const useChatStore = create(
         if (!socket) return;
 
         socket.off("newMessage");
+        socket.off("messageSent");
         socket.off("newGroupMessage");
         socket.off("newChannelPost");
         socket.off("newEmail");
 
+        // Handle incoming messages from other users
         socket.on("newMessage", (newMessage) => {
           const activeConversationId = get().activeConversationId;
           const sidebarTab = get().sidebarTab;
+
+          console.log("[SOCKET] Received newMessage:", newMessage);
 
           // If we are currently chatting with this sender/receiver, append to messages
           if (sidebarTab === "chats" && (String(newMessage.senderId) === String(activeConversationId) || String(newMessage.receiverId) === String(activeConversationId))) {
@@ -301,6 +305,24 @@ export const useChatStore = create(
             }
           }
           get().getConversations();
+        });
+
+        // Handle sent messages confirmation from server
+        socket.on("messageSent", (sentMessage) => {
+          const activeConversationId = get().activeConversationId;
+          const sidebarTab = get().sidebarTab;
+
+          console.log("[SOCKET] Received messageSent confirmation:", sentMessage);
+
+          // Update the sent message in the UI
+          if (sidebarTab === "chats" && (String(sentMessage.receiverId) === String(activeConversationId))) {
+            const messages = get().messages;
+            const messageIndex = messages.findIndex(m => m._id === sentMessage._id);
+            if (messageIndex !== -1) {
+              messages[messageIndex] = sentMessage;
+              set({ messages: [...messages] });
+            }
+          }
         });
 
         socket.on("newGroupMessage", (newMessage) => {

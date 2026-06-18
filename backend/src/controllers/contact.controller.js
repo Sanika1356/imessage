@@ -14,15 +14,25 @@ export async function syncContacts(req, res) {
       return res.status(400).json({ message: "Phone numbers array is required" });
     }
 
-    // Normalize phone numbers (remove spaces, dashes, etc.)
-    const normalizedNumbers = phoneNumbers.map(num => 
-      num.replace(/[\s\-\(\)]/g, '')
-    );
+    // Normalize phone numbers to E.164 format
+    const normalizedNumbers = phoneNumbers.map(num => {
+      // Remove all non-digit characters except leading +
+      let normalized = String(num).replace(/[^\d+]/g, '');
+      // Ensure it starts with +
+      if (!normalized.startsWith('+')) {
+        normalized = '+' + normalized;
+      }
+      return normalized;
+    });
+
+    console.log(`[CONTACT-SYNC] Syncing ${phoneNumbers.length} phone numbers. Normalized: ${normalizedNumbers.join(', ')}`);
 
     // Find users who have these phone numbers registered
     const registeredUsers = await User.find({
       phoneNumber: { $in: normalizedNumbers }
     }).select("fullName email phoneNumber profilePic bio status lastSeen");
+
+    console.log(`[CONTACT-SYNC] Found ${registeredUsers.length} registered users`);
 
     // Return users found on the platform
     res.status(200).json({
@@ -48,13 +58,27 @@ export async function checkRegistration(req, res) {
 
     const query = {};
     if (phoneNumber) {
-      query.phoneNumber = phoneNumber.replace(/[\s\-\(\)]/g, '');
+      // Normalize phone to E.164 format
+      let normalizedPhone = String(phoneNumber).replace(/[^\d+]/g, '');
+      if (!normalizedPhone.startsWith('+')) {
+        normalizedPhone = '+' + normalizedPhone;
+      }
+      query.phoneNumber = normalizedPhone;
+      console.log(`[CHECK-REGISTRATION] Checking phone: ${normalizedPhone}`);
     }
     if (email) {
-      query.email = email.toLowerCase();
+      const normalizedEmail = email.toLowerCase().trim();
+      query.email = normalizedEmail;
+      console.log(`[CHECK-REGISTRATION] Checking email: ${normalizedEmail}`);
     }
 
     const user = await User.findOne(query).select("fullName email phoneNumber profilePic");
+    
+    if (user) {
+      console.log(`[CHECK-REGISTRATION] User found: ${user._id}`);
+    } else {
+      console.log(`[CHECK-REGISTRATION] No user found`);
+    }
 
     if (user) {
       res.status(200).json({ 
@@ -90,16 +114,29 @@ export async function findUserByContact(req, res) {
     
     let user;
     if (isEmail) {
+      const normalizedEmail = contact.toLowerCase().trim();
+      console.log(`[FIND-CONTACT] Searching for email: ${normalizedEmail}`);
       user = await User.findOne({ 
-        email: contact.toLowerCase(),
+        email: normalizedEmail,
         _id: { $ne: loggedInUserId }
       }).select("-clerkId");
     } else {
-      const normalizedPhone = contact.replace(/[\s\-\(\)]/g, '');
+      // Normalize phone to E.164 format
+      let normalizedPhone = String(contact).replace(/[^\d+]/g, '');
+      if (!normalizedPhone.startsWith('+')) {
+        normalizedPhone = '+' + normalizedPhone;
+      }
+      console.log(`[FIND-CONTACT] Searching for phone: ${normalizedPhone}`);
       user = await User.findOne({ 
         phoneNumber: normalizedPhone,
         _id: { $ne: loggedInUserId }
       }).select("-clerkId");
+    }
+    
+    if (user) {
+      console.log(`[FIND-CONTACT] Found user: ${user._id}`);
+    } else {
+      console.log(`[FIND-CONTACT] No user found for contact: ${contact}`);
     }
 
     if (!user) {
@@ -125,8 +162,13 @@ export async function updatePhoneNumber(req, res) {
       return res.status(400).json({ message: "Phone number is required" });
     }
 
-    // Normalize phone number
-    const normalizedPhone = phoneNumber.replace(/[\s\-\(\)]/g, '');
+    // Normalize phone number to E.164 format
+    let normalizedPhone = String(phoneNumber).replace(/[^\d+]/g, '');
+    if (!normalizedPhone.startsWith('+')) {
+      normalizedPhone = '+' + normalizedPhone;
+    }
+    
+    console.log(`[UPDATE-PHONE] User ${userId} attempting to set phone: ${normalizedPhone}`);
 
     // Check if phone number is already taken
     const existingUser = await User.findOne({ 
@@ -135,6 +177,7 @@ export async function updatePhoneNumber(req, res) {
     });
 
     if (existingUser) {
+      console.log(`[UPDATE-PHONE] Phone number already registered by user ${existingUser._id}`);
       return res.status(400).json({ message: "Phone number is already registered" });
     }
 
@@ -145,7 +188,7 @@ export async function updatePhoneNumber(req, res) {
       { new: true }
     ).select("-clerkId");
 
-    console.log(`[USER-PROFILE-UPDATE] Phone number updated for user ${userId}: ${normalizedPhone}`);
+    console.log(`[UPDATE-PHONE] Successfully updated phone for user ${userId}: ${normalizedPhone}`);
 
     res.status(200).json(updatedUser);
   } catch (error) {
