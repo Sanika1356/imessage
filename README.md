@@ -236,9 +236,8 @@ imessage/
 │   │   ├── models/           # MongoDB models
 │   │   ├── routes/           # API routes
 │   │   ├── lib/              # Utilities (socket, db, etc.)
-│   │   ├── middleware/       # Express middleware
-│   │   ├── seeds/            # Database seeders
-│   │   └── webhooks/         # Webhook handlers
+    │   │   ├── middleware/       # Express middleware
+    │   │   └── webhooks/         # Webhook handlers
 │   ├── package.json
 │   └── .env
 ├── frontend/

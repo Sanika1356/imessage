@@ -6,8 +6,7 @@
   "scripts": {
     "build": "node build.js",
     "dev": "node --watch src/index.js",
-    "start": "node src/index.js",
-    "db:seed": "node src/seeds/user.seed.js"
+    "start": "node src/index.js"
   },
   "keywords": [],
   "author": "",

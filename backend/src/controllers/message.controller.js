@@ -8,8 +8,7 @@ export async function getUsersForSidebar(req, res) {
     const loggedInUserId = req.user._id;
 
     const filteredUsers = await User.find({
-      _id: { $ne: loggedInUserId },
-      clerkId: { $not: /^seed_/ }
+      _id: { $ne: loggedInUserId }
     }).select("-clerkId");
 
     res.status(200).json(filteredUsers);
@@ -39,7 +38,7 @@ export async function getConversationsForSidebar(req, res) {
       { $sort: { lastMessageAt: -1 } },
       // 4. Look up each partner's user profile (comes back as an array).
       { $lookup: { from: "users", localField: "_id", foreignField: "_id", as: "user" } },
-      // 5. Exclude conversations with users that no longer exist (e.g. seeded users)
+      // 5. Exclude conversations with users that no longer exist
       { $match: { user: { $ne: [] } } },
       // 6. Pull that profile out of the array and make it the document.
       { $replaceRoot: { newRoot: { $first: "$user" } } },
@@ -138,7 +137,6 @@ export async function searchUsers(req, res) {
     // Find users excluding the logged-in user that match email, phone, or fullName
     const users = await User.find({
       _id: { $ne: loggedInUserId },
-      clerkId: { $not: /^seed_/ },
       $or: [
         { email: searchQuery },
         { phoneNumber: searchQuery },

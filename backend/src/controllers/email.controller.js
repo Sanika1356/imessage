@@ -39,16 +39,27 @@ export async function sendEmail(req, res) {
     await sentEmail.save();
 
     // 2. Dispatch the actual email asynchronously via Nodemailer
-    sendMail({
-      from: senderEmail,
-      to: recipient,
-      cc: ccList,
-      bcc: bccList,
-      subject: subject || "(No Subject)",
-      text: body || "",
-      html: `<div style="font-family: sans-serif; line-height: 1.5;">${body}</div>`,
-      attachments: attachmentList
-    }).catch(err => console.error("SMTP async dispatch error:", err));
+    // We await this for invitations or critical emails to ensure delivery status is known
+    try {
+      const emailResult = await sendMail({
+        from: senderEmail,
+        to: recipient,
+        cc: ccList,
+        bcc: bccList,
+        subject: subject || "(No Subject)",
+        text: body || "",
+        html: `<div style="font-family: sans-serif; line-height: 1.5;">${body}</div>`,
+        attachments: attachmentList
+      });
+      
+      if (emailResult.simulated) {
+        console.log(`[EMAIL-DELIVERY-INFO] Email to ${recipient} was SIMULATED because SMTP/Resend is not configured.`);
+      } else {
+        console.log(`[EMAIL-DELIVERY-SUCCESS] Email delivered to ${recipient}. ID: ${emailResult.messageId}`);
+      }
+    } catch (err) {
+      console.error("[EMAIL-DELIVERY-FAILURE] Failed to dispatch email:", err.message);
+    }
 
     // 3. Deliver internally if the recipient or any CC/BCC is a registered app user
     const allInternalRecipients = [recipient, ...ccList, ...bccList];
