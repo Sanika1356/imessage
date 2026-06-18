@@ -20,6 +20,7 @@ import groupRoutes from "./routes/group.route.js";
 import channelRoutes from "./routes/channel.route.js";
 import emailRoutes from "./routes/email.route.js";
 import contactRoutes from "./routes/contact.route.js";
+import webSyncRoutes from "./routes/webSync.route.js";
 import { app, server } from "./lib/socket.js";
 
 const PORT = process.env.PORT;
@@ -55,6 +56,7 @@ app.use("/api/groups", groupRoutes);
 app.use("/api/channels", channelRoutes);
 app.use("/api/emails", emailRoutes);
 app.use("/api/contacts", contactRoutes);
+app.use("/api/sync", webSyncRoutes);
 
 // if the public directory exists, serve the static files
 // this is for the production build

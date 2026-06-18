@@ -48,14 +48,20 @@ router.post("/", async (req, res) => {
             console.log(`[CLERK-WEBHOOK] Normalized phone: ${phoneNumber}`);
         }
 
+        // ENFORCE: Phone number is required
+        if (!phoneNumber) {
+            console.warn(`[CLERK-WEBHOOK] Warning: User created without phone number: ${email}`);
+            console.warn(`[CLERK-WEBHOOK] Phone number is REQUIRED for iMessage. User must add it to their profile.`);
+        } else {
+            console.log(`[CLERK-WEBHOOK] Phone number verified: ${phoneNumber}`);
+        }
+        
         const updateData = { clerkId: u.id, email, fullName, profilePic: u.image_url };
         if (phoneNumber) {
             updateData.phoneNumber = phoneNumber;
-        } else {
-            updateData.phoneNumber = undefined;
         }
         
-        console.log(`[CLERK-WEBHOOK] User synced - Email: ${email}, Phone: ${phoneNumber || 'none'}`);
+        console.log(`[CLERK-WEBHOOK] User synced - Email: ${email}, Phone: ${phoneNumber || '(MISSING - REQUIRED)'}`);
         console.log(`[CLERK-WEBHOOK] Update data:`, updateData);
 
         await User.findOneAndUpdate(

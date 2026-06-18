@@ -10,23 +10,17 @@ export const useChatStore = create(
       users: [],
       conversations: [],
       messages: [],
-      groups: [],
-      channels: [],
       emails: [],
       selectedUser: null,
-      activeGroup: null,
-      activeChannel: null,
       activeEmailFolder: "inbox",
       selectedEmail: null,
       isConversationsLoading: false,
       isUsersLoading: false,
       isMessagesLoading: false,
-      isGroupsLoading: false,
-      isChannelsLoading: false,
       isEmailsLoading: false,
-      activeConversationId: null, // represents active DM, group, or channel ID
+      activeConversationId: null, // represents active DM or email ID
       searchQuery: "",
-      sidebarTab: "chats", // "chats" | "groups" | "channels" | "emails" | "users"
+      sidebarTab: "chats", // "chats" | "emails" | "users"
       composerText: "",
       isSoundEnabled: true,
       isSendingMedia: false,
@@ -90,136 +84,7 @@ export const useChatStore = create(
         }
       },
 
-      // Groups actions
-      getGroups: async () => {
-        set({ isGroupsLoading: true });
-        try {
-          const res = await axiosInstance.get("/groups");
-          set({ groups: res.data });
-        } catch (error) {
-          console.log("Error in getGroups", error.message);
-        } finally {
-          set({ isGroupsLoading: false });
-        }
-      },
 
-      createGroup: async (groupData) => {
-        try {
-          const res = await axiosInstance.post("/groups/create", groupData);
-          set((state) => ({ groups: [...state.groups, res.data] }));
-          toast.success("Group created successfully!");
-          return res.data;
-        } catch (error) {
-          toast.error(error.response?.data?.message || "Failed to create group");
-          return null;
-        }
-      },
-
-      joinGroup: async (inviteCode) => {
-        try {
-          const res = await axiosInstance.post("/groups/join", { inviteCode });
-          set((state) => ({ groups: [...state.groups, res.data] }));
-          toast.success("Joined group successfully!");
-          return res.data;
-        } catch (error) {
-          toast.error(error.response?.data?.message || "Failed to join group");
-          return null;
-        }
-      },
-
-      getGroupMessages: async (groupId) => {
-        if (!groupId) return;
-        set({ isMessagesLoading: true });
-        try {
-          const res = await axiosInstance.get(`/groups/${groupId}`);
-          set({ messages: res.data });
-        } catch (error) {
-          toast.error(error.response?.data?.message || "Failed to load group messages");
-        } finally {
-          set({ isMessagesLoading: false });
-        }
-      },
-
-      sendGroupMessage: async (groupId, messageData) => {
-        try {
-          const res = await axiosInstance.post(`/groups/send/${groupId}`, messageData);
-          set((state) => ({ messages: [...state.messages, res.data], composerText: "" }));
-          return true;
-        } catch (error) {
-          toast.error(error.response?.data?.message || "Failed to send group message");
-          return false;
-        }
-      },
-
-      // Channels actions
-      getChannels: async () => {
-        set({ isChannelsLoading: true });
-        try {
-          const res = await axiosInstance.get("/channels");
-          set({ channels: res.data });
-        } catch (error) {
-          console.log("Error in getChannels", error.message);
-        } finally {
-          set({ isChannelsLoading: false });
-        }
-      },
-
-      createChannel: async (channelData) => {
-        try {
-          const res = await axiosInstance.post("/channels/create", channelData);
-          set((state) => ({ channels: [...state.channels, res.data] }));
-          toast.success("Channel created successfully!");
-          return res.data;
-        } catch (error) {
-          toast.error(error.response?.data?.message || "Failed to create channel");
-          return null;
-        }
-      },
-
-      subscribeChannel: async (inviteCode) => {
-        try {
-          const res = await axiosInstance.post("/channels/subscribe", { inviteCode });
-          set((state) => ({ channels: [...state.channels, res.data] }));
-          toast.success("Subscribed to channel successfully!");
-          return res.data;
-        } catch (error) {
-          toast.error(error.response?.data?.message || "Failed to subscribe to channel");
-          return null;
-        }
-      },
-
-      getChannelPosts: async (channelId) => {
-        if (!channelId) return;
-        set({ isMessagesLoading: true });
-        try {
-          const res = await axiosInstance.get(`/channels/${channelId}`);
-          set({ messages: res.data });
-        } catch (error) {
-          toast.error(error.response?.data?.message || "Failed to load channel posts");
-        } finally {
-          set({ isMessagesLoading: false });
-        }
-      },
-
-      postToChannel: async (channelId, postData) => {
-        try {
-          const res = await axiosInstance.post(`/channels/send/${channelId}`, postData);
-          set((state) => ({ messages: [...state.messages, res.data], composerText: "" }));
-          return true;
-        } catch (error) {
-          toast.error(error.response?.data?.message || "Failed to post to channel");
-          return false;
-        }
-      },
-
-      pinPost: async (channelId, messageId) => {
-        try {
-          await axiosInstance.post("/channels/pin", { channelId, messageId });
-          toast.success("Post pinned!");
-        } catch (error) {
-          toast.error(error.response?.data?.message || "Failed to pin post");
-        }
-      },
 
       // Emails actions
       getEmails: async (folder) => {
