@@ -497,6 +497,55 @@ export const useChatStore = create(
           set({ isSendingMedia: false });
         }
       },
+
+      // Voice message support
+      sendVoiceMessage: async (conversationId, audioBlob) => {
+        if (!conversationId || !audioBlob) return false;
+        const { sidebarTab } = get();
+
+        const formData = new FormData();
+        formData.append("media", audioBlob, "voice-message.webm");
+
+        set({ isSendingMedia: true });
+        try {
+          if (sidebarTab === "groups") {
+            return await get().sendGroupMessage(conversationId, formData);
+          } else if (sidebarTab === "channels") {
+            return await get().postToChannel(conversationId, formData);
+          } else {
+            return await get().sendMessage(formData);
+          }
+        } finally {
+          set({ isSendingMedia: false });
+        }
+      },
+
+      // Message reactions
+      addReaction: async (messageId, emoji) => {
+        try {
+          const res = await axiosInstance.post(`/groups/messages/${messageId}/reactions`, { emoji });
+          set((state) => ({
+            messages: state.messages.map((m) =>
+              m._id === messageId ? { ...m, reactions: res.data.reactions } : m
+            )
+          }));
+          return true;
+        } catch (error) {
+          toast.error(error.response?.data?.message || "Failed to add reaction");
+          return false;
+        }
+      },
+
+      // Public groups discovery
+      getPublicGroups: async () => {
+        try {
+          const res = await axiosInstance.get("/groups/public");
+          return res.data;
+        } catch (error) {
+          toast.error(error.response?.data?.message || "Failed to load public groups");
+          return [];
+        }
+      },
     }),
     {
       name: "imessage-storage",

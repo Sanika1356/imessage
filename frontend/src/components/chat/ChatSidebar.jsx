@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { getInitials, useSelectedConversation } from "../../hooks/useSelectedConversation";
 import { useAuthStore } from "../../store/useAuthStore";
 import { useChatStore } from "../../store/useChatStore";
@@ -6,11 +6,14 @@ import { APP_NAME, AppLogo } from "../AppLogo";
 import { UserButton } from "@clerk/react";
 
 import { SearchField, Tabs, useOverlayState } from "@heroui/react";
-import { MessageSquareIcon, UsersIcon, Users, Megaphone, Mail } from "lucide-react";
+import { MessageSquareIcon, UsersIcon, Users, Megaphone, Mail, UserPlus, RefreshCw } from "lucide-react";
 import { ConversationRow } from "./ConversationRow";
 import { NewChatModal } from "./NewChatModal";
 import { CreateGroupModal } from "./CreateGroupModal";
 import { CreateChannelModal } from "./CreateChannelModal";
+import { AddContactModal } from "./AddContactModal";
+import { PhoneNumberSetup } from "./PhoneNumberSetup";
+import { ContactSyncModal } from "./ContactSyncModal";
 
 function mapUserForList(user, onlineUsers) {
   return {
@@ -62,16 +65,47 @@ function ChatSidebar() {
 
   const setActiveConversationId = useChatStore((state) => state.setActiveConversationId);
   const onlineUsers = useAuthStore((state) => state.onlineUsers);
+  const authUser = useAuthStore((state) => state.authUser);
   const { activeConversationId, isLargeScreen } = useSelectedConversation();
 
   const newChatOverlay = useOverlayState();
   const createGroupOverlay = useOverlayState();
   const createChannelOverlay = useOverlayState();
+  
+  const [showAddContact, setShowAddContact] = useState(false);
+  const [showPhoneSetup, setShowPhoneSetup] = useState(false);
+  const [showContactSync, setShowContactSync] = useState(false);
 
   useEffect(() => {
     getGroups();
     getChannels();
   }, [getGroups, getChannels]);
+
+  const handleSyncContacts = () => {
+    // Check if user has phone number
+    if (!authUser?.phoneNumber) {
+      setShowPhoneSetup(true);
+    } else {
+      setShowContactSync(true);
+    }
+  };
+
+  const handleAddContact = () => {
+    // Check if user has phone number
+    if (!authUser?.phoneNumber) {
+      setShowPhoneSetup(true);
+    } else {
+      setShowAddContact(true);
+    }
+  };
+
+  const handlePhoneUpdate = (updatedUser) => {
+    // Update auth user with new phone number
+    useAuthStore.getState().checkAuth();
+    setShowPhoneSetup(false);
+    // Show contact sync after phone setup
+    setShowContactSync(true);
+  };
 
   const normalizedSearchQuery = searchQuery.trim().toLowerCase();
 
@@ -111,6 +145,20 @@ function ChatSidebar() {
             {APP_NAME}
           </p>
           <div className="flex items-center gap-1 shrink-0">
+            <button
+              onClick={handleSyncContacts}
+              className="rounded-lg p-1.5 hover:bg-neutral-100 dark:hover:bg-neutral-700 transition-colors"
+              title="Sync phone contacts"
+            >
+              <RefreshCw className="size-5 text-blue-600" />
+            </button>
+            <button
+              onClick={handleAddContact}
+              className="rounded-lg p-1.5 hover:bg-neutral-100 dark:hover:bg-neutral-700 transition-colors"
+              title="Add contact by phone/email"
+            >
+              <UserPlus className="size-5 text-green-600" />
+            </button>
             <NewChatModal state={newChatOverlay} />
             <CreateGroupModal state={createGroupOverlay} />
             <CreateChannelModal state={createChannelOverlay} />
@@ -124,6 +172,25 @@ function ChatSidebar() {
           />
         </div>
       </div>
+
+      {/* Modals */}
+      <ContactSyncModal 
+        isOpen={showContactSync} 
+        onClose={() => setShowContactSync(false)} 
+      />
+      
+      <AddContactModal 
+        isOpen={showAddContact} 
+        onClose={() => setShowAddContact(false)} 
+      />
+      
+      {showPhoneSetup && (
+        <PhoneNumberSetup
+          currentUser={authUser}
+          onUpdate={handlePhoneUpdate}
+          onClose={() => setShowPhoneSetup(false)}
+        />
+      )}
 
       <Tabs
         selectedKey={sidebarTab}

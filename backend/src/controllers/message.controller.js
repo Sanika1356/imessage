@@ -75,12 +75,13 @@ export async function getMessages(req, res) {
 
 export async function sendMessage(req, res) {
   try {
-    const { text } = req.body;
+    const { text, replyTo } = req.body;
     const { id: receiverId } = req.params;
     const senderId = req.user._id;
 
     let imageUrl;
     let videoUrl;
+    let audioUrl;
 
     if (req.file) {
       if (!hasImageKitConfig()) {
@@ -89,6 +90,7 @@ export async function sendMessage(req, res) {
 
       const url = await uploadChatMedia(req.file);
       if (req.file.mimetype.startsWith("video/")) videoUrl = url;
+      else if (req.file.mimetype.startsWith("audio/")) audioUrl = url;
       else imageUrl = url;
     }
 
@@ -98,9 +100,16 @@ export async function sendMessage(req, res) {
       text,
       image: imageUrl,
       video: videoUrl,
+      audio: audioUrl,
+      replyTo: replyTo || null,
     });
 
     await newMessage.save();
+
+    // Populate replyTo message if exists
+    if (replyTo) {
+      await newMessage.populate('replyTo', 'text senderId');
+    }
 
     const receiverSocketId = getReceiverSocketId(receiverId);
     // only send the message in realtime if user is online

@@ -31,6 +31,27 @@ const groupSchema = new mongoose.Schema({
     unique: true,
     required: true,
   },
+  inviteLink: {
+    type: String,
+  },
+  isPublic: {
+    type: Boolean,
+    default: false,
+  },
+  settings: {
+    onlyAdminsCanSend: {
+      type: Boolean,
+      default: false,
+    },
+    onlyAdminsCanEditInfo: {
+      type: Boolean,
+      default: true,
+    },
+    membersCanAddOthers: {
+      type: Boolean,
+      default: true,
+    },
+  },
   telegramUsername: {
     type: String,
     default: "",

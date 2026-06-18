@@ -30,6 +30,38 @@ const messageSchema = new mongoose.Schema({
     pdf: {
         type: String,
     },
+    audio: {
+        type: String,
+    },
+    replyTo: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "Message",
+    },
+    forwarded: {
+        type: Boolean,
+        default: false,
+    },
+    edited: {
+        type: Boolean,
+        default: false,
+    },
+    editedAt: {
+        type: Date,
+    },
+    deleted: {
+        type: Boolean,
+        default: false,
+    },
+    deletedAt: {
+        type: Date,
+    },
+    reactions: [{
+        userId: {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: "User",
+        },
+        emoji: String,
+    }],
     status: {
         type: String,
         enum: ["sent", "delivered", "read"],

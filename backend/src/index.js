@@ -18,6 +18,7 @@ import messageRoutes from "./routes/message.route.js";
 import groupRoutes from "./routes/group.route.js";
 import channelRoutes from "./routes/channel.route.js";
 import emailRoutes from "./routes/email.route.js";
+import contactRoutes from "./routes/contact.route.js";
 import { app, server } from "./lib/socket.js";
 
 const PORT = process.env.PORT;
@@ -41,6 +42,7 @@ app.use("/api/messages", messageRoutes);
 app.use("/api/groups", groupRoutes);
 app.use("/api/channels", channelRoutes);
 app.use("/api/emails", emailRoutes);
+app.use("/api/contacts", contactRoutes);
 
 // if the public directory exists, serve the static files
 // this is for the production build

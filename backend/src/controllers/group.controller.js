@@ -5,7 +5,7 @@ import crypto from "crypto";
 
 export async function createGroup(req, res) {
   try {
-    const { name, description, members } = req.body;
+    const { name, description, members, isPublic, groupPhoto } = req.body;
     const ownerId = req.user._id;
 
     if (!name) {
@@ -14,6 +14,7 @@ export async function createGroup(req, res) {
 
     // Generate a unique invite code
     const inviteCode = crypto.randomBytes(6).toString("hex");
+    const inviteLink = `${process.env.FRONTEND_URL || 'http://localhost:5173'}/join/${inviteCode}`;
 
     // Include owner in members list if not already present
     const memberIds = Array.isArray(members) ? [...members] : [];
@@ -24,10 +25,13 @@ export async function createGroup(req, res) {
     const newGroup = new Group({
       name,
       description,
+      groupPhoto: groupPhoto || "",
       owner: ownerId,
       admins: [ownerId],
       members: memberIds,
       inviteCode,
+      inviteLink,
+      isPublic: isPublic || false,
     });
 
     await newGroup.save();
@@ -134,6 +138,96 @@ export async function getGroups(req, res) {
     res.status(200).json(groups);
   } catch (error) {
     console.error("Error in getGroups:", error.message);
+    res.status(500).json({ message: "Internal server error" });
+  }
+}
+
+export async function getPublicGroups(req, res) {
+  try {
+    // Find public groups available to join
+    const publicGroups = await Group.find({ isPublic: true })
+      .populate("owner", "fullName profilePic")
+      .select("name description groupPhoto owner members inviteCode createdAt")
+      .sort({ createdAt: -1 })
+      .limit(50);
+
+    const groupsWithMemberCount = publicGroups.map(group => ({
+      ...group.toObject(),
+      memberCount: group.members.length,
+    }));
+
+    res.status(200).json(groupsWithMemberCount);
+  } catch (error) {
+    console.error("Error in getPublicGroups:", error.message);
+    res.status(500).json({ message: "Internal server error" });
+  }
+}
+
+export async function addReaction(req, res) {
+  try {
+    const { messageId } = req.params;
+    const { emoji } = req.body;
+    const userId = req.user._id;
+
+    if (!emoji) {
+      return res.status(400).json({ message: "Emoji is required" });
+    }
+
+    const message = await Message.findById(messageId);
+    if (!message) {
+      return res.status(404).json({ message: "Message not found" });
+    }
+
+    // Check if user already reacted with this emoji
+    const existingReaction = message.reactions.find(
+      r => String(r.userId) === String(userId) && r.emoji === emoji
+    );
+
+    if (existingReaction) {
+      // Remove reaction
+      message.reactions = message.reactions.filter(
+        r => !(String(r.userId) === String(userId) && r.emoji === emoji)
+      );
+    } else {
+      // Add reaction
+      message.reactions.push({ userId, emoji });
+    }
+
+    await message.save();
+
+    // Emit to relevant users
+    if (message.groupId) {
+      const group = await Group.findById(message.groupId);
+      group.members.forEach((memberId) => {
+        const socketId = getReceiverSocketId(memberId);
+        if (socketId) {
+          io.to(socketId).emit("messageReaction", {
+            messageId,
+            reactions: message.reactions,
+          });
+        }
+      });
+    } else if (message.receiverId) {
+      const senderSocketId = getReceiverSocketId(message.senderId);
+      const receiverSocketId = getReceiverSocketId(message.receiverId);
+      
+      if (senderSocketId) {
+        io.to(senderSocketId).emit("messageReaction", {
+          messageId,
+          reactions: message.reactions,
+        });
+      }
+      if (receiverSocketId) {
+        io.to(receiverSocketId).emit("messageReaction", {
+          messageId,
+          reactions: message.reactions,
+        });
+      }
+    }
+
+    res.status(200).json(message);
+  } catch (error) {
+    console.error("Error in addReaction:", error.message);
     res.status(500).json({ message: "Internal server error" });
   }
 }
