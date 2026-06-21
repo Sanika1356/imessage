@@ -100,3 +100,16 @@ Body: ${text}
     return { messageId: "simulated-fallback-" + Date.now(), simulated: true, error: error.message };
   }
 }
+
+// Helper function for simple email sending
+export async function sendEmail({ to, subject, text, html }) {
+  const from = process.env.RESEND_FROM_EMAIL || process.env.SMTP_USER || "noreply@imessage.app";
+  
+  return await sendMail({
+    from,
+    to,
+    subject,
+    text,
+    html: html || text
+  });
+}

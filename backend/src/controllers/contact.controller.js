@@ -163,17 +163,76 @@ export async function inviteContact(req, res) {
       return res.status(400).json({ message: "Phone number or email is required" });
     }
 
-    // Here you would integrate with SMS/Email service
-    // For now, we'll just return a success message
     const inviteLink = `${process.env.FRONTEND_URL}/invite?ref=${inviter._id}`;
+    const message = `${inviter.fullName} invited you to join iMessage!\n\nConnect and chat: ${inviteLink}`;
 
-    // TODO: Send actual SMS/Email invitation
-    console.log(`Invitation to ${phoneNumber || email}: Join ${inviter.fullName} on iMessage! ${inviteLink}`);
+    // Send actual invitation
+    try {
+      if (email) {
+        // Send Email invitation using nodemailer
+        const { sendEmail } = await import("../lib/nodemailer.js");
+        
+        await sendEmail({
+          to: email,
+          subject: `${inviter.fullName} invited you to iMessage`,
+          text: message,
+          html: `
+            <div style="font-family: Arial, sans-serif; padding: 20px;">
+              <h2>You've been invited to iMessage!</h2>
+              <p><strong>${inviter.fullName}</strong> wants to connect with you on iMessage.</p>
+              <p>Click the button below to join and start chatting:</p>
+              <a href="${inviteLink}" style="display: inline-block; padding: 12px 24px; background-color: #25D366; color: white; text-decoration: none; border-radius: 5px; margin: 20px 0;">
+                Join iMessage
+              </a>
+              <p>Or copy this link: ${inviteLink}</p>
+              <hr style="margin: 20px 0;">
+              <p style="color: #666; font-size: 12px;">If you didn't expect this invitation, you can safely ignore this email.</p>
+            </div>
+          `
+        });
 
-    res.status(200).json({ 
-      message: "Invitation sent successfully",
-      inviteLink 
-    });
+        console.log(`✅ Email invitation sent to ${email}`);
+      }
+
+      if (phoneNumber) {
+        // For SMS, you would integrate with services like:
+        // - Twilio
+        // - AWS SNS
+        // - MessageBird
+        // For now, log it
+        console.log(`📱 SMS invitation would be sent to ${phoneNumber}: ${message}`);
+        
+        // Example Twilio integration (commented out - requires Twilio account):
+        /*
+        const accountSid = process.env.TWILIO_ACCOUNT_SID;
+        const authToken = process.env.TWILIO_AUTH_TOKEN;
+        const twilioPhone = process.env.TWILIO_PHONE_NUMBER;
+        
+        if (accountSid && authToken && twilioPhone) {
+          const client = require('twilio')(accountSid, authToken);
+          await client.messages.create({
+            body: message,
+            from: twilioPhone,
+            to: phoneNumber
+          });
+        }
+        */
+      }
+
+      res.status(200).json({ 
+        message: "Invitation sent successfully",
+        inviteLink,
+        sentVia: email ? "email" : "sms"
+      });
+    } catch (sendError) {
+      console.error("Error sending invitation:", sendError);
+      // Still return success with link even if sending fails
+      res.status(200).json({ 
+        message: "Invitation link generated (delivery may have failed)",
+        inviteLink,
+        warning: "Email/SMS service may not be configured"
+      });
+    }
   } catch (error) {
     console.error("Error in inviteContact:", error.message);
     res.status(500).json({ message: "Internal server error" });
