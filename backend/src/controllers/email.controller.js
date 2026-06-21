@@ -39,16 +39,27 @@ export async function sendEmail(req, res) {
     await sentEmail.save();
 
     // 2. Dispatch the actual email asynchronously via Nodemailer
-    sendMail({
-      from: senderEmail,
-      to: recipient,
-      cc: ccList,
-      bcc: bccList,
-      subject: subject || "(No Subject)",
-      text: body || "",
-      html: `<div style="font-family: sans-serif; line-height: 1.5;">${body}</div>`,
-      attachments: attachmentList
-    }).catch(err => console.error("SMTP async dispatch error:", err));
+    // We await this for invitations or critical emails to ensure delivery status is known
+    try {
+      const emailResult = await sendMail({
+        from: senderEmail,
+        to: recipient,
+        cc: ccList,
+        bcc: bccList,
+        subject: subject || "(No Subject)",
+        text: body || "",
+        html: `<div style="font-family: sans-serif; line-height: 1.5;">${body}</div>`,
+        attachments: attachmentList
+      });
+      
+      if (emailResult.simulated) {
+        console.log(`[EMAIL-DELIVERY-INFO] Email to ${recipient} was SIMULATED because SMTP/Resend is not configured.`);
+      } else {
+        console.log(`[EMAIL-DELIVERY-SUCCESS] Email delivered to ${recipient}. ID: ${emailResult.messageId}`);
+      }
+    } catch (err) {
+      console.error("[EMAIL-DELIVERY-FAILURE] Failed to dispatch email:", err.message);
+    }
 
     // 3. Deliver internally if the recipient or any CC/BCC is a registered app user
     const allInternalRecipients = [recipient, ...ccList, ...bccList];
@@ -78,9 +89,18 @@ export async function sendEmail(req, res) {
         const socketId = getReceiverSocketId(recipientUser._id);
         if (socketId) {
           io.to(socketId).emit("newEmail", inboxEmail);
+          console.log(`[EMAIL-DELIVERY-REALTIME] Email notification sent to recipient ${recipientUser._id} via socket`);
+        } else {
+          console.log(`[EMAIL-DELIVERY-OFFLINE] Recipient ${recipientUser._id} is offline - email saved to inbox`);
         }
+        
+        console.log(`[EMAIL-CREATED] Email from ${senderEmail} to ${emailAddr} saved to inbox`);
+      } else {
+        console.log(`[EMAIL-NOT-INTERNAL] Recipient ${emailAddr} not found in app - external email only`);
       }
     }
+    
+    console.log(`[EMAIL-SENT] Email sent from ${senderEmail} to ${recipient}. Internal recipients: ${uniqueRecipients.length}`);
 
     res.status(201).json(sentEmail);
   } catch (error) {

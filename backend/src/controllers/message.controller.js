@@ -8,8 +8,7 @@ export async function getUsersForSidebar(req, res) {
     const loggedInUserId = req.user._id;
 
     const filteredUsers = await User.find({
-      _id: { $ne: loggedInUserId },
-      clerkId: { $not: /^seed_/ }
+      _id: { $ne: loggedInUserId }
     }).select("-clerkId");
 
     res.status(200).json(filteredUsers);
@@ -39,7 +38,7 @@ export async function getConversationsForSidebar(req, res) {
       { $sort: { lastMessageAt: -1 } },
       // 4. Look up each partner's user profile (comes back as an array).
       { $lookup: { from: "users", localField: "_id", foreignField: "_id", as: "user" } },
-      // 5. Exclude conversations with users that no longer exist (e.g. seeded users)
+      // 5. Exclude conversations with users that no longer exist
       { $match: { user: { $ne: [] } } },
       // 6. Pull that profile out of the array and make it the document.
       { $replaceRoot: { newRoot: { $first: "$user" } } },
@@ -111,13 +110,28 @@ export async function sendMessage(req, res) {
       await newMessage.populate('replyTo', 'text senderId');
     }
 
+    // Populate sender info for real-time display
+    const populatedMessage = await Message.findById(newMessage._id)
+      .populate('senderId', 'fullName profilePic email phoneNumber')
+      .populate('receiverId', 'fullName profilePic email phoneNumber');
+
     const receiverSocketId = getReceiverSocketId(receiverId);
-    // only send the message in realtime if user is online
+    // Send message to receiver if online
     if (receiverSocketId) {
-      io.to(receiverSocketId).emit("newMessage", newMessage);
+      io.to(receiverSocketId).emit("newMessage", populatedMessage);
+      console.log(`[MESSAGE-DELIVERY] Message sent to receiver ${receiverId} via socket`);
+    } else {
+      console.log(`[MESSAGE-DELIVERY] Receiver ${receiverId} is offline - message saved to DB`);
+    }
+    
+    // Also send to sender for immediate UI update
+    const senderSocketId = getReceiverSocketId(senderId);
+    if (senderSocketId) {
+      io.to(senderSocketId).emit("messageSent", populatedMessage);
     }
 
-    res.status(201).json(newMessage);
+    console.log(`[MESSAGE-CREATED] Message ${newMessage._id} created from ${senderId} to ${receiverId}`);
+    res.status(201).json(populatedMessage);
   } catch (error) {
     console.error("Error in sendMessage:", error.message);
     res.status(500).json({ message: "Internal server error" });
@@ -138,7 +152,6 @@ export async function searchUsers(req, res) {
     // Find users excluding the logged-in user that match email, phone, or fullName
     const users = await User.find({
       _id: { $ne: loggedInUserId },
-      clerkId: { $not: /^seed_/ },
       $or: [
         { email: searchQuery },
         { phoneNumber: searchQuery },

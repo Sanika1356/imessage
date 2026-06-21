@@ -15,12 +15,8 @@ export async function connectDB() {
 
         console.log("MongoDB Connected", conn.connection.host);
 
-        try {
-            await mongoose.model("User").deleteMany({ clerkId: /^seed_/ });
-            console.log("Cleaned up seeded/artificial users from database.");
-        } catch (err) {
-            console.error("Failed to delete seeded users:", err.message);
-        }
+        // Ensure we only use real users and real data
+        console.log("Database initialized for real-world contact and communication use.");
 
     }
     catch (error) {

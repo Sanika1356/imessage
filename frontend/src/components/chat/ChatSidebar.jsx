@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useState, useEffect } from "react";
 import { getInitials, useSelectedConversation } from "../../hooks/useSelectedConversation";
 import { useAuthStore } from "../../store/useAuthStore";
 import { useChatStore } from "../../store/useChatStore";
@@ -6,11 +6,9 @@ import { APP_NAME, AppLogo } from "../AppLogo";
 import { UserButton } from "@clerk/react";
 
 import { SearchField, Tabs, useOverlayState } from "@heroui/react";
-import { MessageSquareIcon, UsersIcon, Users, Megaphone, Mail, UserPlus, RefreshCw } from "lucide-react";
+import { MessageSquareIcon, Mail, UserPlus, RefreshCw } from "lucide-react";
 import { ConversationRow } from "./ConversationRow";
 import { NewChatModal } from "./NewChatModal";
-import { CreateGroupModal } from "./CreateGroupModal";
-import { CreateChannelModal } from "./CreateChannelModal";
 import { AddContactModal } from "./AddContactModal";
 import { PhoneNumberSetup } from "./PhoneNumberSetup";
 import { ContactSyncModal } from "./ContactSyncModal";
@@ -26,36 +24,9 @@ function mapUserForList(user, onlineUsers) {
   };
 }
 
-function mapGroupForList(group) {
-  return {
-    conversationId: group._id,
-    id: group._id,
-    name: group.name,
-    avatarUrl: group.groupPhoto || "",
-    initials: group.name.split(" ").map(n => n[0]).join("").substring(0, 2),
-    isOnline: false,
-  };
-}
-
-function mapChannelForList(channel) {
-  return {
-    conversationId: channel._id,
-    id: channel._id,
-    name: channel.name,
-    avatarUrl: "",
-    initials: channel.name.split(" ").map(n => n[0]).join("").substring(0, 2),
-    isOnline: false,
-  };
-}
-
 function ChatSidebar() {
   const conversations = useChatStore((state) => state.conversations);
   const users = useChatStore((state) => state.users);
-  const groups = useChatStore((state) => state.groups);
-  const channels = useChatStore((state) => state.channels);
-
-  const getGroups = useChatStore((state) => state.getGroups);
-  const getChannels = useChatStore((state) => state.getChannels);
 
   const searchQuery = useChatStore((state) => state.searchQuery);
   const setSearchQuery = useChatStore((state) => state.setSearchQuery);
@@ -69,17 +40,10 @@ function ChatSidebar() {
   const { activeConversationId, isLargeScreen } = useSelectedConversation();
 
   const newChatOverlay = useOverlayState();
-  const createGroupOverlay = useOverlayState();
-  const createChannelOverlay = useOverlayState();
   
   const [showAddContact, setShowAddContact] = useState(false);
   const [showPhoneSetup, setShowPhoneSetup] = useState(false);
   const [showContactSync, setShowContactSync] = useState(false);
-
-  useEffect(() => {
-    getGroups();
-    getChannels();
-  }, [getGroups, getChannels]);
 
   const handleSyncContacts = () => {
     // Check if user has phone number
@@ -111,8 +75,6 @@ function ChatSidebar() {
 
   const conversationUsers = conversations.map((user) => mapUserForList(user, onlineUsers));
   const allUsers = users.map((user) => mapUserForList(user, onlineUsers));
-  const allGroups = groups.map(mapGroupForList);
-  const allChannels = channels.map(mapChannelForList);
 
   const filteredConversations = normalizedSearchQuery
     ? conversationUsers.filter((conversation) =>
@@ -123,14 +85,6 @@ function ChatSidebar() {
   const filteredUsers = normalizedSearchQuery
     ? allUsers.filter((user) => user.name.toLowerCase().includes(normalizedSearchQuery))
     : allUsers;
-
-  const filteredGroups = normalizedSearchQuery
-    ? allGroups.filter((g) => g.name.toLowerCase().includes(normalizedSearchQuery))
-    : allGroups;
-
-  const filteredChannels = normalizedSearchQuery
-    ? allChannels.filter((c) => c.name.toLowerCase().includes(normalizedSearchQuery))
-    : allChannels;
 
   return (
     <aside
@@ -160,8 +114,6 @@ function ChatSidebar() {
               <UserPlus className="size-5 text-green-600" />
             </button>
             <NewChatModal state={newChatOverlay} />
-            <CreateGroupModal state={createGroupOverlay} />
-            <CreateChannelModal state={createChannelOverlay} />
           </div>
           <UserButton
             appearance={{
@@ -215,26 +167,18 @@ function ChatSidebar() {
         </div>
 
         <Tabs.ListContainer className="shrink-0 border-b border-border px-1 pb-2 pt-1 overflow-x-auto scrollbar-none">
-          <Tabs.List className="w-full gap-0.5 min-w-[340px]">
+          <Tabs.List className="w-full gap-0.5 min-w-[240px]">
             <Tabs.Tab id="chats" className="flex-1 justify-center gap-1 text-[11px] py-1">
               <MessageSquareIcon className="size-3.5 opacity-80" aria-hidden />
-              DMs
-            </Tabs.Tab>
-            <Tabs.Tab id="groups" className="flex-1 justify-center gap-1 text-[11px] py-1">
-              <Users className="size-3.5 opacity-80" aria-hidden />
-              Groups
-            </Tabs.Tab>
-            <Tabs.Tab id="channels" className="flex-1 justify-center gap-1 text-[11px] py-1">
-              <Megaphone className="size-3.5 opacity-80" aria-hidden />
-              Channels
+              Messages
             </Tabs.Tab>
             <Tabs.Tab id="emails" className="flex-1 justify-center gap-1 text-[11px] py-1">
               <Mail className="size-3.5 opacity-80" aria-hidden />
               Emails
             </Tabs.Tab>
             <Tabs.Tab id="users" className="flex-1 justify-center gap-1 text-[11px] py-1">
-              <UsersIcon className="size-3.5 opacity-80" aria-hidden />
-              Users
+              <UserPlus className="size-3.5 opacity-80" aria-hidden />
+              Contacts
             </Tabs.Tab>
           </Tabs.List>
         </Tabs.ListContainer>
@@ -245,57 +189,19 @@ function ChatSidebar() {
         >
           {filteredConversations.length === 0 ? (
             <p className="px-4 py-6 text-center text-sm text-muted">
-              No conversations.
+              No conversations. Start a new chat!
             </p>
           ) : (
-            filteredConversations.map((conversation) => (
-              <ConversationRow
-                key={conversation.id}
-                user={conversation}
-                selected={conversation.id === activeConversationId}
-                onSelect={() => setActiveConversationId(conversation.id)}
-              />
-            ))
-          )}
-        </Tabs.Panel>
-
-        <Tabs.Panel
-          id="groups"
-          className="flex-1 overflow-x-hidden overflow-y-auto outline-none"
-        >
-          {filteredGroups.length === 0 ? (
-            <p className="px-4 py-6 text-center text-sm text-muted">
-              No groups joined.
-            </p>
-          ) : (
-            filteredGroups.map((group) => (
-              <ConversationRow
-                key={group.id}
-                user={group}
-                selected={group.id === activeConversationId}
-                onSelect={() => setActiveConversationId(group.id)}
-              />
-            ))
-          )}
-        </Tabs.Panel>
-
-        <Tabs.Panel
-          id="channels"
-          className="flex-1 overflow-x-hidden overflow-y-auto outline-none"
-        >
-          {filteredChannels.length === 0 ? (
-            <p className="px-4 py-6 text-center text-sm text-muted">
-              No channels subscribed.
-            </p>
-          ) : (
-            filteredChannels.map((channel) => (
-              <ConversationRow
-                key={channel.id}
-                user={channel}
-                selected={channel.id === activeConversationId}
-                onSelect={() => setActiveConversationId(channel.id)}
-              />
-            ))
+            <div className="flex flex-col gap-1 px-2 py-2">
+              {filteredConversations.map((conversation) => (
+                <ConversationRow
+                  key={conversation.id}
+                  conversation={conversation}
+                  isActive={activeConversationId === conversation.conversationId}
+                  onClick={() => setActiveConversationId(conversation.conversationId)}
+                />
+              ))}
+            </div>
           )}
         </Tabs.Panel>
 
@@ -303,29 +209,35 @@ function ChatSidebar() {
           id="emails"
           className="flex-1 overflow-x-hidden overflow-y-auto outline-none"
         >
-          <div className="px-4 py-6 text-center text-sm text-muted">
-            <Mail className="size-8 mx-auto mb-2 text-zinc-500" />
-            <p className="font-semibold text-white">Email Dashboard Active</p>
-            <p className="text-xs mt-1">Manage compose, inbox and drafts inside the main panel.</p>
-          </div>
+          <p className="px-4 py-6 text-center text-sm text-muted">
+            Email conversations will appear here
+          </p>
         </Tabs.Panel>
 
-        <Tabs.Panel id="users" className="flex-1 overflow-x-hidden overflow-y-auto outline-none">
+        <Tabs.Panel
+          id="users"
+          className="flex-1 overflow-x-hidden overflow-y-auto outline-none"
+        >
           {filteredUsers.length === 0 ? (
-            <p className="px-4 py-6 text-center text-sm text-muted">No people match your search.</p>
+            <p className="px-4 py-6 text-center text-sm text-muted">
+              No contacts available. Sync your contacts!
+            </p>
           ) : (
-            filteredUsers.map((user) => (
-              <ConversationRow
-                key={user.conversationId}
-                user={user}
-                selected={user.conversationId === activeConversationId}
-                onSelect={() => setActiveConversationId(user.conversationId)}
-              />
-            ))
+            <div className="flex flex-col gap-1 px-2 py-2">
+              {filteredUsers.map((user) => (
+                <ConversationRow
+                  key={user.id}
+                  conversation={user}
+                  isActive={activeConversationId === user.conversationId}
+                  onClick={() => setActiveConversationId(user.conversationId)}
+                />
+              ))}
+            </div>
           )}
         </Tabs.Panel>
       </Tabs>
     </aside>
   );
 }
+
 export default ChatSidebar;
