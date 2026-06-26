@@ -1,14 +1,17 @@
 import { withTransform } from "../../lib/imagekit";
 import { MessageVideo } from "./MessageVideo";
-import { Check, CheckCheck } from "lucide-react";
+import { Check, CheckCheck, Play, Pause } from "lucide-react";
+import { useState } from "react";
 
 // Compress + size images for the bubble
 const IMAGE_TRANSFORM = "q-auto,w-640,f-auto";
 
 export function MessageBubble({ message }) {
+  const [isPlaying, setIsPlaying] = useState(false);
   const isOwnMessage = message.role === "me";
   const hasImage = Boolean(message.imageUrl);
   const hasVideo = Boolean(message.videoUrl);
+  const hasAudio = Boolean(message.audioUrl);
 
   return (
     <div className={`flex w-full ${isOwnMessage ? "justify-end" : "justify-start"}`}>
@@ -36,6 +39,29 @@ export function MessageBubble({ message }) {
         
         {hasVideo ? <MessageVideo src={message.videoUrl} /> : null}
         
+        {hasAudio ? (
+          <div className="flex items-center gap-2 my-2">
+            <button
+              onClick={() => setIsPlaying(!isPlaying)}
+              className="flex-shrink-0 p-1.5 rounded-full bg-accent/20 hover:bg-accent/30 transition-colors"
+            >
+              {isPlaying ? (
+                <Pause className="size-4 text-accent" strokeWidth={2} />
+              ) : (
+                <Play className="size-4 text-accent" strokeWidth={2} />
+              )}
+            </button>
+            <audio
+              src={message.audioUrl}
+              controls
+              className="flex-1 h-6"
+              onPlay={() => setIsPlaying(true)}
+              onPause={() => setIsPlaying(false)}
+              onEnded={() => setIsPlaying(false)}
+            />
+          </div>
+        ) : null}
+        
         {message.text ? (
           <p className="whitespace-pre-wrap break-words">{message.text}</p>
         ) : null}
@@ -60,6 +86,17 @@ export function MessageBubble({ message }) {
             </span>
           )}
         </div>
+
+        {/* Message Reactions */}
+        {message.reactions && message.reactions.length > 0 ? (
+          <div className="flex flex-wrap gap-1 mt-2 pt-1 border-t border-foreground/10">
+            {message.reactions.map((reaction, idx) => (
+              <span key={idx} className="text-xs px-1.5 py-0.5 bg-foreground/5 rounded-full">
+                {reaction.emoji}
+              </span>
+            ))}
+          </div>
+        ) : null}
       </div>
     </div>
   );

@@ -21,6 +21,8 @@ function mapUserToConversation({ user, messages, authUser, onlineUsers }) {
     time: formatMessageTime(message.createdAt),
     imageUrl: message.image,
     videoUrl: message.video,
+    audioUrl: message.audio,
+    reactions: message.reactions || [],
     status: message.status || "sent",
     senderId: message.senderId,
   }));
@@ -84,6 +86,8 @@ export function useSelectedConversation() {
             time: formatMessageTime(m.createdAt),
             imageUrl: m.image,
             videoUrl: m.video,
+            audioUrl: m.audio,
+            reactions: m.reactions || [],
           })),
         };
       }
@@ -115,6 +119,8 @@ export function useSelectedConversation() {
             time: formatMessageTime(m.createdAt),
             imageUrl: m.image,
             videoUrl: m.video,
+            audioUrl: m.audio,
+            reactions: m.reactions || [],
           })),
         };
       }

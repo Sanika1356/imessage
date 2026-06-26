@@ -320,3 +320,64 @@ export async function sendGroupMessage(req, res) {
     res.status(500).json({ message: "Internal server error" });
   }
 }
+
+export async function addReaction(req, res) {
+  try {
+    const { messageId } = req.params;
+    const { emoji } = req.body;
+    const userId = req.user._id;
+
+    if (!messageId || !emoji) {
+      return res.status(400).json({ message: "Message ID and emoji are required" });
+    }
+
+    const message = await Message.findById(messageId);
+    if (!message) {
+      return res.status(404).json({ message: "Message not found" });
+    }
+
+    // Initialize reactions array if it doesn't exist
+    if (!message.reactions) {
+      message.reactions = [];
+    }
+
+    // Check if user already has a reaction on this message
+    const existingReactionIndex = message.reactions.findIndex(
+      (r) => String(r.userId) === String(userId)
+    );
+
+    if (existingReactionIndex !== -1) {
+      // If same emoji, remove reaction; otherwise, update it
+      if (message.reactions[existingReactionIndex].emoji === emoji) {
+        message.reactions.splice(existingReactionIndex, 1);
+      } else {
+        message.reactions[existingReactionIndex].emoji = emoji;
+      }
+    } else {
+      // Add new reaction
+      message.reactions.push({ userId, emoji });
+    }
+
+    await message.save();
+    const populatedMessage = await Message.findById(messageId)
+      .populate("senderId", "fullName profilePic email phoneNumber");
+
+    // Emit reaction update to all group members
+    if (message.groupId) {
+      const group = await Group.findById(message.groupId);
+      if (group) {
+        group.members.forEach((memberId) => {
+          const socketId = getReceiverSocketId(memberId);
+          if (socketId) {
+            io.to(socketId).emit("messageReaction", populatedMessage);
+          }
+        });
+      }
+    }
+
+    res.status(200).json(populatedMessage);
+  } catch (error) {
+    console.error("Error in addReaction:", error.message);
+    res.status(500).json({ message: "Internal server error" });
+  }
+}

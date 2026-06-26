@@ -1,14 +1,17 @@
 import { Button, TextArea } from "@heroui/react";
-import { ImageIcon, LoaderIcon, SendHorizontalIcon } from "lucide-react";
-import { useRef } from "react";
+import { ImageIcon, LoaderIcon, SendHorizontalIcon, Mic } from "lucide-react";
+import { useRef, useState } from "react";
 import useKeyboardSound from "../../hooks/useKeyboardSound";
 import { useChatStore } from "../../store/useChatStore";
 import { useSelectedConversation } from "../../hooks/useSelectedConversation";
+import { VoiceRecorder } from "./VoiceRecorder";
 
 export function ChatComposer() {
+  const [isRecording, setIsRecording] = useState(false);
   const composerText = useChatStore((state) => state.composerText);
   const isSoundEnabled = useChatStore((state) => state.isSoundEnabled);
   const sendMediaMessage = useChatStore((state) => state.sendMediaMessage);
+  const sendVoiceMessage = useChatStore((state) => state.sendVoiceMessage);
   const isSendingMedia = useChatStore((state) => state.isSendingMedia);
   const sendTextMessage = useChatStore((state) => state.sendTextMessage);
   const setComposerText = useChatStore((state) => state.setComposerText);
@@ -43,6 +46,14 @@ export function ChatComposer() {
     if (didSendMessage) playSoundIfEnabled();
   };
 
+  const handleSendVoice = async (audioBlob) => {
+    const didSendMessage = await sendVoiceMessage(activeConversationId, audioBlob);
+    if (didSendMessage) {
+      playSoundIfEnabled();
+      setIsRecording(false);
+    }
+  };
+
   const isReadOnly = activeConversation?.telegramUsername;
 
   if (isReadOnly) {
@@ -51,6 +62,17 @@ export function ChatComposer() {
         <p className="text-xs text-zinc-400">
           This is a read-only preview feed for Telegram <span className="text-accent font-semibold">@{activeConversation.telegramUsername}</span>.
         </p>
+      </footer>
+    );
+  }
+
+  if (isRecording) {
+    return (
+      <footer className="shrink-0 border-t border-border px-1.5 pb-2 pt-2 sm:px-2">
+        <VoiceRecorder
+          onSendVoice={handleSendVoice}
+          onCancel={() => setIsRecording(false)}
+        />
       </footer>
     );
   }
@@ -78,6 +100,15 @@ export function ChatComposer() {
           aria-hidden
           onChange={handleMediaPick}
         />
+        <Button
+          variant="ghost"
+          isIconOnly
+          isDisabled={isSendingMedia}
+          className="size-9 shrink-0 touch-manipulation self-end text-accent"
+          onPress={() => setIsRecording(true)}
+        >
+          <Mic className="size-5 sm:size-6" strokeWidth={2} />
+        </Button>
         <Button
           variant="ghost"
           isIconOnly
