@@ -163,75 +163,6 @@ export async function getPublicGroups(req, res) {
   }
 }
 
-export async function addReaction(req, res) {
-  try {
-    const { messageId } = req.params;
-    const { emoji } = req.body;
-    const userId = req.user._id;
-
-    if (!emoji) {
-      return res.status(400).json({ message: "Emoji is required" });
-    }
-
-    const message = await Message.findById(messageId);
-    if (!message) {
-      return res.status(404).json({ message: "Message not found" });
-    }
-
-    // Check if user already reacted with this emoji
-    const existingReaction = message.reactions.find(
-      r => String(r.userId) === String(userId) && r.emoji === emoji
-    );
-
-    if (existingReaction) {
-      // Remove reaction
-      message.reactions = message.reactions.filter(
-        r => !(String(r.userId) === String(userId) && r.emoji === emoji)
-      );
-    } else {
-      // Add reaction
-      message.reactions.push({ userId, emoji });
-    }
-
-    await message.save();
-
-    // Emit to relevant users
-    if (message.groupId) {
-      const group = await Group.findById(message.groupId);
-      group.members.forEach((memberId) => {
-        const socketId = getReceiverSocketId(memberId);
-        if (socketId) {
-          io.to(socketId).emit("messageReaction", {
-            messageId,
-            reactions: message.reactions,
-          });
-        }
-      });
-    } else if (message.receiverId) {
-      const senderSocketId = getReceiverSocketId(message.senderId);
-      const receiverSocketId = getReceiverSocketId(message.receiverId);
-      
-      if (senderSocketId) {
-        io.to(senderSocketId).emit("messageReaction", {
-          messageId,
-          reactions: message.reactions,
-        });
-      }
-      if (receiverSocketId) {
-        io.to(receiverSocketId).emit("messageReaction", {
-          messageId,
-          reactions: message.reactions,
-        });
-      }
-    }
-
-    res.status(200).json(message);
-  } catch (error) {
-    console.error("Error in addReaction:", error.message);
-    res.status(500).json({ message: "Internal server error" });
-  }
-}
-
 export async function getGroupMessages(req, res) {
   try {
     const { id: groupId } = req.params;
@@ -371,6 +302,22 @@ export async function addReaction(req, res) {
           if (socketId) {
             io.to(socketId).emit("messageReaction", populatedMessage);
           }
+        });
+      }
+    } else if (message.receiverId) {
+      const senderSocketId = getReceiverSocketId(message.senderId);
+      const receiverSocketId = getReceiverSocketId(message.receiverId);
+      
+      if (senderSocketId) {
+        io.to(senderSocketId).emit("messageReaction", {
+          messageId,
+          reactions: message.reactions,
+        });
+      }
+      if (receiverSocketId) {
+        io.to(receiverSocketId).emit("messageReaction", {
+          messageId,
+          reactions: message.reactions,
         });
       }
     }
