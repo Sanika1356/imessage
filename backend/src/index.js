@@ -28,14 +28,20 @@ const FRONTEND_URL = process.env.FRONTEND_URL || "http://localhost:5173";
 
 const publicDir = path.join(process.cwd(), "public");
 
-<<<<<<< HEAD
-// Health check - must be BEFORE other middleware
+// Health check endpoint
 app.get("/health", (req, res) => {
     res.status(200).json({ 
-        ok: true, 
+        ok: true,
         message: "Server is healthy",
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
+        uptime: process.uptime()
     });
+});
+
+// Email service status endpoint
+app.get("/api/health/email", (req, res) => {
+    const status = getEmailServiceStatus();
+    res.status(200).json(status);
 });
 
 // CORS configuration - must be BEFORE routes
@@ -65,30 +71,6 @@ if (process.env.NODE_ENV === "development") {
 }
 
 // API Routes
-=======
-// Health check endpoint
-app.get("/health", (req, res) => {
-    res.status(200).json({ 
-        ok: true,
-        timestamp: new Date().toISOString(),
-        uptime: process.uptime()
-    });
-});
-
-// Email service status endpoint
-app.get("/api/health/email", (req, res) => {
-    const status = getEmailServiceStatus();
-    res.status(200).json(status);
-});
-
-// it's important that you don't parse the webhook event data, it should be in the raw format
-app.use("/api/webhooks/clerk", express.raw({ type: "application/json" }), clerkWebhook);
-
-app.use(express.json());
-app.use(cors({ origin: FRONTEND_URL, credentials: true }));
-app.use(clerkMiddleware());
-
->>>>>>> 634060a04e5d93827230372655c18bea0f5d5851
 app.use("/api/auth", authRoutes);
 app.use("/api/messages", messageRoutes);
 app.use("/api/groups", groupRoutes);
@@ -113,7 +95,6 @@ if (fs.existsSync(publicDir)) {
     });
 }
 
-<<<<<<< HEAD
 // Error handling middleware
 app.use((err, req, res, next) => {
     console.error("Error:", err);
@@ -138,6 +119,8 @@ server.listen(PORT, async () => {
         console.error("❌ MongoDB Connection Failed:", error.message);
     }
 
+    verifyEmailConfig();
+
     if (process.env.NODE_ENV === "production") {
         job.start();
         console.log("✅ Cron jobs started");
@@ -147,13 +130,3 @@ server.listen(PORT, async () => {
     console.log("✨ Server is ready to accept connections!");
     console.log("========================================");
 });
-=======
-server.listen(PORT, () => {
-    connectDB();
-    verifyEmailConfig();
-    console.log("\n[SERVER-STARTUP] ✓ Server is up and running on PORT:", PORT);
-    console.log("[SERVER-STARTUP] ✓ Ready to accept connections\n");
-
-    if (process.env.NODE_ENV === "production") job.start();
-});
->>>>>>> 634060a04e5d93827230372655c18bea0f5d5851
