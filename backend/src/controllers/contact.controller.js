@@ -254,78 +254,6 @@ export async function inviteContact(req, res) {
       return res.status(400).json({ message: "Phone number or email is required" });
     }
 
-<<<<<<< HEAD
-    const inviteLink = `${process.env.FRONTEND_URL}/invite?ref=${inviter._id}`;
-    const message = `${inviter.fullName} invited you to join iMessage!\n\nConnect and chat: ${inviteLink}`;
-
-    // Send actual invitation
-    try {
-      if (email) {
-        // Send Email invitation using nodemailer
-        const { sendEmail } = await import("../lib/nodemailer.js");
-        
-        await sendEmail({
-          to: email,
-          subject: `${inviter.fullName} invited you to iMessage`,
-          text: message,
-          html: `
-            <div style="font-family: Arial, sans-serif; padding: 20px;">
-              <h2>You've been invited to iMessage!</h2>
-              <p><strong>${inviter.fullName}</strong> wants to connect with you on iMessage.</p>
-              <p>Click the button below to join and start chatting:</p>
-              <a href="${inviteLink}" style="display: inline-block; padding: 12px 24px; background-color: #25D366; color: white; text-decoration: none; border-radius: 5px; margin: 20px 0;">
-                Join iMessage
-              </a>
-              <p>Or copy this link: ${inviteLink}</p>
-              <hr style="margin: 20px 0;">
-              <p style="color: #666; font-size: 12px;">If you didn't expect this invitation, you can safely ignore this email.</p>
-            </div>
-          `
-        });
-
-        console.log(`✅ Email invitation sent to ${email}`);
-      }
-
-      if (phoneNumber) {
-        // For SMS, you would integrate with services like:
-        // - Twilio
-        // - AWS SNS
-        // - MessageBird
-        // For now, log it
-        console.log(`📱 SMS invitation would be sent to ${phoneNumber}: ${message}`);
-        
-        // Example Twilio integration (commented out - requires Twilio account):
-        /*
-        const accountSid = process.env.TWILIO_ACCOUNT_SID;
-        const authToken = process.env.TWILIO_AUTH_TOKEN;
-        const twilioPhone = process.env.TWILIO_PHONE_NUMBER;
-        
-        if (accountSid && authToken && twilioPhone) {
-          const client = require('twilio')(accountSid, authToken);
-          await client.messages.create({
-            body: message,
-            from: twilioPhone,
-            to: phoneNumber
-          });
-        }
-        */
-      }
-
-      res.status(200).json({ 
-        message: "Invitation sent successfully",
-        inviteLink,
-        sentVia: email ? "email" : "sms"
-      });
-    } catch (sendError) {
-      console.error("Error sending invitation:", sendError);
-      // Still return success with link even if sending fails
-      res.status(200).json({ 
-        message: "Invitation link generated (delivery may have failed)",
-        inviteLink,
-        warning: "Email/SMS service may not be configured"
-      });
-    }
-=======
     const inviteLink = `${process.env.FRONTEND_URL || 'http://localhost:5173'}/signup?ref=${inviter._id}`;
     const contactName = name || phoneNumber || email;
 
@@ -377,25 +305,22 @@ export async function inviteContact(req, res) {
       }
     }
 
-    // 2. Handle SMS Invitation (Log it for now, or use a service if configured)
+    // 2. Handle SMS Invitation
     if (phoneNumber) {
       const normalizedPhone = normalizePhone(phoneNumber);
       console.log(`[INVITE] 📱 SMS invitation logged for ${normalizedPhone}`);
       console.log(`[INVITE] SMS content: "Hi ${contactName}, ${inviter.fullName} invited you to join iMessage! ${inviteLink}"`);
-      
-      // TODO: Integrate Twilio or another SMS service here
-      // For now, we're just logging it as a tracked action
+      // SMS service integration would go here (e.g., Twilio)
     }
 
     res.status(200).json({ 
-      message: "Invitation sent successfully",
+      message: "Invitation processed successfully",
       inviteLink,
-      sentTo: email || phoneNumber,
-      timestamp: new Date().toISOString()
+      sentVia: email ? "email" : "sms"
     });
->>>>>>> 634060a04e5d93827230372655c18bea0f5d5851
+
   } catch (error) {
     console.error("[INVITE] Error:", error.message);
-    res.status(500).json({ message: "Internal server error", error: error.message });
+    res.status(500).json({ message: "Internal server error" });
   }
 }

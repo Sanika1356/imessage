@@ -165,7 +165,6 @@ export async function sendMail({ from, to, cc, bcc, subject, text, html, attachm
   }
 }
 
-<<<<<<< HEAD
 // Helper function for simple email sending
 export async function sendEmail({ to, subject, text, html }) {
   const from = process.env.RESEND_FROM_EMAIL || process.env.SMTP_USER || "noreply@imessage.app";
@@ -178,7 +177,7 @@ export async function sendEmail({ to, subject, text, html }) {
     html: html || text
   });
 }
-=======
+
 /**
  * Verify email configuration on startup
  */
@@ -223,6 +222,6 @@ export default {
   getTransporter,
   sendMail,
   getEmailServiceStatus,
-  verifyEmailConfig
+  verifyEmailConfig,
+  sendEmail
 };
->>>>>>> 634060a04e5d93827230372655c18bea0f5d5851
